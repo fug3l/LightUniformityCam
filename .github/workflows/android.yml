@@ -1,38 +1,50 @@
-name: Android CI (APK)
+name: Build APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
+          cache: gradle
 
-      - name: Install Android SDK
+      # Installiere die nötigen Android SDK Komponenten
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: |
+            platform-tools
             platforms;android-34
             build-tools;34.0.0
-            platform-tools
 
-      - name: Build debug APK (no wrapper)
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 8.7
-          arguments: :app:assembleDebug
+      # Fallback (optional), wenn der obige Schritt mal zickt
+      - name: Ensure packages (fallback)
+        if: ${{ failure() }}
+        run: |
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Upload APK artifact
+      - name: Grant gradlew execute
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LightUniformityCam-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
