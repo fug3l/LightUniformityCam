@@ -39,6 +39,10 @@ jobs:
       - name: Grant gradlew execute
         run: chmod +x gradlew
 
+      - name: Install Android SDK packages
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
 
